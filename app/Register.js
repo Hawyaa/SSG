@@ -1,8 +1,10 @@
-import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Switch } from 'react-native';
+import React, { useContext, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Switch, Alert } from 'react-native';
 import { ThemeContext } from './ThemeContext';
+import { auth } from './firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 
-const Register = ({ onRegister }) => {
+const Register = ({ onRegisterSuccess, onNavigate }) => {
   const theme = useContext(ThemeContext);
   const [form, setForm] = useState({
     name: '',
@@ -39,17 +41,34 @@ const Register = ({ onRegister }) => {
   };
 
   const handleSubmit = async () => {
-    if (validate()) {
-      setIsLoading(true);
-      try {
-        await onRegister({
-          name: form.name,
-          email: form.email,
-          phone: form.phone
-        });
-      } finally {
-        setIsLoading(false);
+    if (!validate()) return;
+
+    setIsLoading(true);
+    try {
+      await createUserWithEmailAndPassword(auth, form.email, form.password);
+      Alert.alert('Success', 'Registration successful!');
+      onRegisterSuccess(); // This will trigger navigation in App.js
+    } catch (error) {
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = 'Email already in use';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Invalid email address';
+          break;
+        case 'auth/weak-password':
+          errorMessage = 'Password should be at least 6 characters';
+          break;
+        case 'auth/operation-not-allowed':
+          errorMessage = 'Email/password accounts are not enabled';
+          break;
       }
+      
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -153,6 +172,12 @@ const Register = ({ onRegister }) => {
           <Text style={styles.buttonText}>Register</Text>
         )}
       </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => onNavigate('Login')}>
+        <Text style={[styles.link, { color: theme.colors.primary }]}>
+          Already have an account? Login
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -174,11 +199,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 5,
     padding: 10,
-    marginBottom: 15
+    marginBottom: 5
   },
   errorText: {
     color: '#e74c3c',
-    marginBottom: 15,
+    marginBottom: 10,
     fontSize: 12
   },
   button: {
@@ -200,6 +225,10 @@ const styles = StyleSheet.create({
   termsText: {
     marginLeft: 10,
     fontSize: 14
+  },
+  link: {
+    textAlign: 'center',
+    marginTop: 20
   }
 });
 
