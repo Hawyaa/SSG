@@ -4,12 +4,18 @@ import {
   initializeAuth,
   getAuth,
   getReactNativePersistence,
-  inMemoryPersistence,
 } from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { getStorage } from "firebase/storage"; // ✅ added for storage
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// ---------------- Firebase Config ----------------
+// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyAr95bpAX-rMBns8eYUCw1KwpDmfmiKU8k",
   authDomain: "mahi-c83c7.firebaseapp.com",
@@ -20,33 +26,21 @@ const firebaseConfig = {
   measurementId: "G-QT77HKNQMM",
 };
 
-// ---------------- Initialize Firebase ----------------
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+// ✅ Initialize Firebase App safely
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// ---------------- Auth Initialization ----------------
-let auth;
+// Initialize Auth with AsyncStorage
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
 
-try {
-  auth = getAuth(app);
-
-  // Hot reload protection
-  if (!auth._canInit) {
-    console.log("⚡ Reusing existing Firebase Auth instance");
-  }
-} catch (e) {
-  console.log("⚡ Initializing Firebase Auth with persistence...");
-  auth = initializeAuth(app, {
-    persistence:
-      typeof getReactNativePersistence === "function"
-        ? getReactNativePersistence(AsyncStorage)
-        : inMemoryPersistence,
-  });
-}
-
-// ---------------- Firestore ----------------
+// Initialize Firestore
 const db = getFirestore(app);
 
-// ---------------- Firestore Safe Update Helper ----------------
+// ✅ Initialize Firebase Storage safely
+const storage = getStorage(app);
+
+// Firestore Safe Update Helper
 export const safeUpdateDoc = async (collectionName, docId, data) => {
   try {
     const ref = doc(db, collectionName, docId);
@@ -65,4 +59,4 @@ export const safeUpdateDoc = async (collectionName, docId, data) => {
   }
 };
 
-export { auth, db, app };
+export { auth, db, app, storage }; // ✅ export storage
