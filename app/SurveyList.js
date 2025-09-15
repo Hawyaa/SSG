@@ -15,9 +15,6 @@ import { db } from './firebase';
 const SurveyList = ({ navigation }) => {
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchText, setSearchText] = useState('');
-  const [filter, setFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('date');
 
   useEffect(() => {
     const fetchSurveys = async () => {
@@ -52,9 +49,8 @@ const SurveyList = ({ navigation }) => {
         setLoading(false);
       }
     };
-    
     fetchSurveys();
-  }, [filter, sortBy]);
+  }, []);
 
   const handleSurveySelect = (survey) => {
     navigation.navigate('SurveyDetails', { survey });
