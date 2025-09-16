@@ -1,25 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { collection, query, where, orderBy, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from './firebase';
 
 const ViewFeedback = ({ navigation }) => {
   const [feedback, setFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchFeedback = async () => {
     try {
+      const user = auth.currentUser;
+      if (!user) {
+        Alert.alert("Error", "User not authenticated");
+        setLoading(false);
+        return;
+      }
+
       const q = query(
         collection(db, 'feedback'),
-        where('userId', '==', auth.currentUser.uid),
-        orderBy('timestamp', 'desc')
+        where('userId', '==', user.uid),
+        orderBy('createdAt', 'desc') // Changed to createdAt
       );
       
       const querySnapshot = await getDocs(q);
       const feedbackData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        date: doc.data().timestamp?.toDate()?.toLocaleString() || 'Unknown date'
+        date: doc.data().createdAt?.toDate()?.toLocaleString() || 'Unknown date' // Changed to createdAt
       }));
       
       setFeedback(feedbackData);
@@ -28,6 +36,7 @@ const ViewFeedback = ({ navigation }) => {
       Alert.alert("Error", "Failed to load feedback. Please try again later.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -57,14 +66,21 @@ const ViewFeedback = ({ navigation }) => {
     }
   };
 
-const handleEdit = (item) => {
-  navigation.navigate('EditFeedback', { 
-    feedbackId: item.id,
-    currentRating: item.rating ? item.rating.toString() : "3", // Ensure string conversion
-    currentComments: item.comments || "", // Ensure string value
-    userId: auth.currentUser.uid // Pass current user ID for validation
-  });
-};
+  const handleEdit = (item) => {
+    navigation.navigate('EditFeedback', { 
+      feedbackId: item.id,
+      currentTitle: item.title || "",
+      currentCategory: item.category || "general",
+      currentRating: item.rating ? item.rating.toString() : "5",
+      currentMessage: item.message || item.comments || "",
+      userId: auth.currentUser?.uid
+    });
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchFeedback();
+  };
 
   useEffect(() => {
     fetchFeedback();
@@ -73,42 +89,57 @@ const handleEdit = (item) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#3498db" />
+        <Text style={styles.loadingText}>Loading feedback...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Image
-          source={require('./assets/back.png')}
-          style={styles.backIcon}
-        />
-      </TouchableOpacity>
-      
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.backButton}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Your Feedback</Text>
+        <View style={styles.headerRight} />
+      </View>
+
       <FlatList
         data={feedback}
         keyExtractor={item => item.id}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#3498db']}
+          />
+        }
         renderItem={({ item }) => (
           <View style={styles.feedbackItem}>
-            <View style={styles.feedbackContent}>
-              <Text style={styles.rating}>Rating: {item.rating}/5</Text>
-              <Text style={styles.comments}>Comments: {item.comments}</Text>
-              <Text style={styles.date}>Date: {item.date}</Text>
+            <View style={styles.feedbackHeader}>
+              <Text style={styles.feedbackTitle}>{item.title}</Text>
+              <Text style={styles.date}>{item.date}</Text>
             </View>
+            
+            <View style={styles.ratingCategory}>
+              <Text style={styles.rating}>⭐ {item.rating}/5</Text>
+              <Text style={styles.category}>{item.category}</Text>
+            </View>
+            
+            {item.message && (
+              <Text style={styles.message}>{item.message}</Text>
+            )}
+            
             <View style={styles.actionButtons}>
               <TouchableOpacity 
-                style={styles.editButton}
+                style={[styles.button, styles.editButton]}
                 onPress={() => handleEdit(item)}
               >
                 <Text style={styles.buttonText}>Edit</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={styles.deleteButton}
+                style={[styles.button, styles.deleteButton]}
                 onPress={() => handleDelete(item.id)}
               >
                 <Text style={styles.buttonText}>Delete</Text>
@@ -117,7 +148,10 @@ const handleEdit = (item) => {
           </View>
         )}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No feedback submissions found</Text>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No feedback submissions yet</Text>
+            <Text style={styles.emptySubtext}>Submit your first feedback to see it here!</Text>
+          </View>
         }
         contentContainerStyle={styles.listContent}
       />
@@ -128,82 +162,129 @@ const handleEdit = (item) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f9fa',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 50,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
+  },
+  backButton: {
+    fontSize: 16,
+    color: '#3498db',
+    fontWeight: 'bold'
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  headerRight: {
+    width: 24,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa'
+  },
+  loadingText: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#666'
   },
   feedbackItem: {
-    backgroundColor: 'white',
-    margin: 10,
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: '#fff',
+    margin: 15,
+    padding: 20,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3
   },
-  feedbackContent: {
-    marginBottom: 10,
+  feedbackHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 15
+  },
+  feedbackTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    flex: 1,
+    marginRight: 10
+  },
+  ratingCategory: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15
   },
   rating: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#FFA500'
   },
-  comments: {
+  category: {
     fontSize: 14,
-    color: '#555',
-    marginVertical: 5,
+    color: '#3498db',
+    textTransform: 'capitalize'
   },
   date: {
     fontSize: 12,
-    color: '#777',
-    fontStyle: 'italic',
+    color: '#666'
+  },
+  message: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+    marginBottom: 15
   },
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 10,
+    gap: 10
+  },
+  button: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 6
   },
   editButton: {
-    backgroundColor: '#4CAF50',
-    padding: 8,
-    borderRadius: 4,
-    marginRight: 10,
+    backgroundColor: '#3498db'
   },
   deleteButton: {
-    backgroundColor: '#f44336',
-    padding: 8,
-    borderRadius: 4,
+    backgroundColor: '#e74c3c'
   },
   buttonText: {
-    color: 'white',
-    fontSize: 14,
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    padding: 40
   },
   emptyText: {
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 16,
+    fontSize: 18,
     color: '#666',
+    marginBottom: 10
   },
-  backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    zIndex: 1,
-    padding: 10,
-  },
-  backIcon: {
-    width: 24,
-    height: 24,
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center'
   },
   listContent: {
-    paddingTop: 70,
-    paddingBottom: 20,
+    paddingBottom: 20
   }
 });
 

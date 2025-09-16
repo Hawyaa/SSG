@@ -1,108 +1,223 @@
 import React, { useState } from "react";
-import { View, Text, Switch, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from "react-native";
+import { auth } from "./firebase";
 
-const SettingsScreen = ({ user, onLogout, onBack }) => {
-  const [notifications, setNotifications] = useState(true);
+const SettingsScreen = ({ navigation }) => {
   const [darkMode, setDarkMode] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState('#3498db'); // Default blue theme
+  const [privacyEnabled, setPrivacyEnabled] = useState(false);
+  const [colorScheme, setColorScheme] = useState("blue");
+  const [language, setLanguage] = useState("en"); // "en" or "am"
 
-  const themeColors = ['#3498db', '#e74c3c', '#2ecc71', '#9b59b6']; // Blue, Red, Green, Purple
+  const toggleDarkMode = () => setDarkMode(!darkMode);
+  const togglePrivacy = () => setPrivacyEnabled(!privacyEnabled);
+  const selectColorScheme = (scheme) => setColorScheme(scheme);
+  const selectLanguage = (lang) => setLanguage(lang);
+
+  const handleLogout = () => {
+    Alert.alert(
+      language === "en" ? "Logout" : "ውጣ",
+      language === "en"
+        ? "Are you sure you want to logout?"
+        : "እርግጠኛ ነህ መውጣት ይፈልጋሉ?",
+      [
+        { text: language === "en" ? "Cancel" : "ተሰርዝ", style: "cancel" },
+        {
+          text: language === "en" ? "Logout" : "ውጣ",
+          onPress: () => auth.signOut(),
+        },
+      ]
+    );
+  };
+
+  const dynamicStyles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: darkMode ? "#1c1c1c" : "#f5f5f5",
+      padding: 20,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 20,
+    },
+    backButton: {
+      marginRight: 10,
+      padding: 5,
+    },
+    backText: {
+      fontSize: 20,
+      fontWeight: "bold",
+      color: darkMode ? "#fff" : "#333",
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: "bold",
+      color: darkMode ? "#fff" : "#333",
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: "bold",
+      marginVertical: 10,
+      color: darkMode ? "#fff" : "#333",
+    },
+    itemContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: darkMode ? "#333" : "#ccc",
+    },
+    itemText: {
+      fontSize: 16,
+      color: darkMode ? "#fff" : "#333",
+    },
+    button: {
+      padding: 12,
+      borderRadius: 8,
+      marginVertical: 5,
+      alignItems: "center",
+    },
+    selectedButton: {
+      backgroundColor:
+        colorScheme === "blue"
+          ? "#3498db"
+          : colorScheme === "green"
+          ? "#2ecc71"
+          : colorScheme === "purple"
+          ? "#9b59b6"
+          : "#3498db",
+    },
+    buttonText: {
+      color: "#fff",
+      fontWeight: "bold",
+    },
+    logoutButton: {
+      marginTop: 30,
+      backgroundColor: "#e74c3c",
+      padding: 15,
+      borderRadius: 12,
+      alignItems: "center",
+    },
+    logoutText: {
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: "bold",
+    },
+  });
 
   return (
-    <View style={[styles.container, { backgroundColor: darkMode ? '#121212' : '#fff' }]}>
-      <TouchableOpacity onPress={onBack} style={styles.backButton}>
-        <Text style={[styles.backText, { color: selectedTheme }]}>← Back</Text>
-      </TouchableOpacity>
-
-      <Text style={[styles.header, { color: darkMode ? '#fff' : '#000' }]}>Settings</Text>
-
-      <View style={styles.settingItem}>
-        <Text style={{ color: darkMode ? '#fff' : '#000' }}>Email: {user?.email}</Text>
+    <ScrollView style={dynamicStyles.container}>
+      {/* Header with Back button */}
+      <View style={dynamicStyles.header}>
+        <TouchableOpacity
+          style={dynamicStyles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={dynamicStyles.backText}>←</Text>
+        </TouchableOpacity>
+        <Text style={dynamicStyles.headerTitle}>
+          {language === "en" ? "Settings" : "ቅንብሮች"}
+        </Text>
       </View>
 
-      <View style={styles.settingItem}>
-        <Text style={{ color: darkMode ? '#fff' : '#000' }}>Enable Notifications</Text>
-        <Switch 
-          value={notifications} 
-          onValueChange={setNotifications}
-          trackColor={{ true: selectedTheme }}
-          thumbColor={notifications ? '#fff' : '#f4f3f4'}
-        />
+      {/* Dark Mode */}
+      <Text style={dynamicStyles.sectionTitle}>
+        {language === "en" ? "Appearance" : "የማያይ ሁኔታ"}
+      </Text>
+      <View style={dynamicStyles.itemContainer}>
+        <Text style={dynamicStyles.itemText}>
+          {language === "en" ? "Dark Mode" : "ጨለማ ሁኔታ"}
+        </Text>
+        <Switch value={darkMode} onValueChange={toggleDarkMode} />
       </View>
 
-      <View style={styles.settingItem}>
-        <Text style={{ color: darkMode ? '#fff' : '#000' }}>Dark Mode</Text>
-        <Switch
-          value={darkMode}
-          onValueChange={setDarkMode}
-          trackColor={{ true: selectedTheme }}
-          thumbColor={darkMode ? '#fff' : '#f4f3f4'}
-        />
+      {/* Color Scheme */}
+      <Text style={dynamicStyles.sectionTitle}>
+        {language === "en" ? "Color Scheme" : "የቀለም አቀማመጥ"}
+      </Text>
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        {["blue", "green", "purple"].map((color) => (
+          <TouchableOpacity
+            key={color}
+            style={[
+              dynamicStyles.button,
+              colorScheme === color && dynamicStyles.selectedButton,
+            ]}
+            onPress={() => selectColorScheme(color)}
+          >
+            <Text style={dynamicStyles.buttonText}>
+              {color === "blue"
+                ? language === "en"
+                  ? "Blue"
+                  : "ሰማያዊ"
+                : color === "green"
+                ? language === "en"
+                  ? "Green"
+                  : "አረንጋዴ"
+                : language === "en"
+                ? "Purple"
+                : "ሐምራዊ"}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Theme Selection */}
-      <View style={styles.settingItem}>
-        <Text style={{ color: darkMode ? '#fff' : '#000' }}>Theme Color</Text>
-        <View style={styles.themeOptions}>
-          {themeColors.map(color => (
-            <TouchableOpacity 
-              key={color} 
-              style={[
-                styles.colorOption, 
-                { 
-                  backgroundColor: color,
-                  borderWidth: selectedTheme === color ? 2 : 0,
-                  borderColor: '#fff'
-                }
-              ]}
-              onPress={() => setSelectedTheme(color)}
-            />
-          ))}
-        </View>
+      {/* Privacy */}
+      <Text style={dynamicStyles.sectionTitle}>
+        {language === "en" ? "Privacy Settings" : "የግል መረጃ ቅንብሮች"}
+      </Text>
+      <View style={dynamicStyles.itemContainer}>
+        <Text style={dynamicStyles.itemText}>
+          {language === "en" ? "Enable Privacy Mode" : "የግል ሁኔታ አቀማመጥ"}
+        </Text>
+        <Switch value={privacyEnabled} onValueChange={togglePrivacy} />
       </View>
 
-      <TouchableOpacity 
-        style={[styles.logoutButton, { backgroundColor: selectedTheme }]} 
-        onPress={onLogout}
+      {/* Language */}
+      <Text style={dynamicStyles.sectionTitle}>
+        {language === "en" ? "Language" : "ቋንቋ"}
+      </Text>
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <TouchableOpacity
+          style={[
+            dynamicStyles.button,
+            language === "en" && dynamicStyles.selectedButton,
+          ]}
+          onPress={() => selectLanguage("en")}
+        >
+          <Text style={dynamicStyles.buttonText}>English</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            dynamicStyles.button,
+            language === "am" && dynamicStyles.selectedButton,
+          ]}
+          onPress={() => selectLanguage("am")}
+        >
+          <Text style={dynamicStyles.buttonText}>አማርኛ</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Logout */}
+      <TouchableOpacity
+        style={dynamicStyles.logoutButton}
+        onPress={handleLogout}
       >
-        <Text style={styles.logoutText}>Log Out</Text>
+        <Text style={dynamicStyles.logoutText}>
+          {language === "en" ? "Logout" : "ውጣ"}
+        </Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  backButton: { marginBottom: 20 },
-  backText: { fontSize: 16 },
-  header: { fontSize: 22, fontWeight: "bold", marginBottom: 30 },
-  settingItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  themeOptions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  colorOption: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-  },
-  logoutButton: {
-    marginTop: 40,
-    padding: 15,
-    borderRadius: 5,
-    alignItems: "center",
-  },
-  logoutText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-});
 
 export default SettingsScreen;
