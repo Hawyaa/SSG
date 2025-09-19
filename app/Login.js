@@ -74,6 +74,13 @@ const Login = ({ onLoginSuccess, onNavigate }) => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.card}>
+        {/* Space Image */}
+        <Image 
+          source={require('./assets/space.png')} 
+          style={styles.spaceImage}
+          resizeMode="contain"
+        />
+        
         <Text style={styles.title}>Customer Satisfaction</Text>
         
         {/* Email Input */}
@@ -174,6 +181,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3
+  },
+  spaceImage: {
+    width: '100%',
+    height: 150,
+    marginBottom: 20,
+    alignSelf: 'center'
   },
   title: {
     fontSize: 22,

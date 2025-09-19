@@ -1,74 +1,73 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { db, auth } from './firebase';
+import React, { useEffect, useState } from "react";
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  StyleSheet, 
+  Alert, 
+  TouchableOpacity,
+  LogBox
+} from "react-native";
+import { db } from "./firebase";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import * as Notifications from "expo-notifications";
+
+// 🔹 Suppress the simulator warning
+LogBox.ignoreLogs([
+  "Must be run on a physical device"
+]);
 
 const NotificationsScreen = ({ navigation }) => {
   const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const q = query(
-          collection(db, 'notifications'),
-          where('userId', '==', auth.currentUser.uid),
-          orderBy('timestamp', 'desc')
-        );
-        
-        const querySnapshot = await getDocs(q);
-        const notificationsData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          title: doc.data().title || 'Notification',
-          message: doc.data().message || '',
-          date: doc.data().timestamp?.toDate()?.toLocaleString() || 'Recently'
-        }));
-        
-        setNotifications(notificationsData);
-      } catch (error) {
-        console.error("Error loading notifications:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchNotifications();
-  }, []);
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-      </View>
+    const q = query(
+      collection(db, "notifications"),
+      orderBy("timestamp", "desc")
     );
-  }
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setNotifications(data);
+    });
+
+    // Listen for foreground notifications
+    const subscription = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        Alert.alert(
+          notification.request.content.title,
+          notification.request.content.body
+        );
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      subscription.remove();
+    };
+  }, []);
 
   return (
     <View style={styles.container}>
-      {/* Back Button */}
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Image
-          source={require('./assets/back.png')}
-          style={styles.backIcon}
-        />
+      {/* 🔹 Go Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Text style={styles.backButtonText}>⬅ Go Back</Text>
       </TouchableOpacity>
-      
+
       <FlatList
         data={notifications}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.notificationItem}>
-            <Text style={styles.notificationTitle}>{item.title}</Text>
-            <Text style={styles.notificationMessage}>{item.message}</Text>
-            <Text style={styles.notificationDate}>{item.date}</Text>
+          <View style={styles.card}>
+            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.message}>{item.message}</Text>
           </View>
         )}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No notifications yet</Text>
+          <Text style={styles.emptyText}>No notifications yet.</Text>
         }
       />
     </View>
@@ -76,59 +75,26 @@ const NotificationsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5'
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  notificationItem: {
-    backgroundColor: 'white',
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 8,
-    elevation: 2,
-    marginHorizontal: 15
-  },
-  notificationTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 5
-  },
-  notificationMessage: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 5
-  },
-  notificationDate: {
-    fontSize: 12,
-    color: '#888',
-    fontStyle: 'italic'
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 16,
-    color: '#666'
-  },
+  container: { flex: 1, padding: 16, backgroundColor: "#f5f7fa" },
   backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    zIndex: 1,
-    padding: 10
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    backgroundColor: "#3498db",
+    borderRadius: 6,
+    alignSelf: "flex-start",
   },
-  backIcon: {
-    width: 24,
-    height: 24
+  backButtonText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
+  card: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    elevation: 2,
   },
-  listContent: {
-    paddingTop: 70,
-    paddingBottom: 20
-  }
+  title: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
+  message: { fontSize: 14, color: "#333" },
+  emptyText: { textAlign: "center", marginTop: 50, color: "#888" },
 });
 
 export default NotificationsScreen;

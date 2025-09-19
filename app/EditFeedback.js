@@ -53,35 +53,45 @@ const EditFeedback = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Rating (1-5):</Text>
-      <TextInput
-        style={styles.input}
-        value={rating}
-        onChangeText={setRating}
-        keyboardType="numeric"
-        maxLength={1}
-      />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.backButton}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Edit Feedback</Text>
+        <View style={styles.headerRight} />
+      </View>
 
-      <Text style={styles.label}>Comments:</Text>
-      <TextInput
-        style={[styles.input, styles.commentsInput]}
-        value={comments}
-        onChangeText={setComments}
-        multiline
-        numberOfLines={4}
-      />
+      <View style={styles.content}>
+        <Text style={styles.sectionTitle}>Rating (1-5):</Text>
+        <TextInput
+          style={styles.input}
+          value={rating}
+          onChangeText={setRating}
+          keyboardType="numeric"
+          maxLength={1}
+        />
 
-      <TouchableOpacity
-        style={styles.updateButton}
-        onPress={handleUpdate}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text style={styles.buttonText}>Update Feedback</Text>
-        )}
-      </TouchableOpacity>
+        <Text style={styles.sectionTitle}>Comments:</Text>
+        <TextInput
+          style={[styles.input, styles.commentsInput]}
+          value={comments}
+          onChangeText={setComments}
+          multiline
+          numberOfLines={4}
+        />
+
+        <TouchableOpacity
+          style={[styles.updateButton, isLoading && styles.updateButtonDisabled]}
+          onPress={handleUpdate}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.buttonText}>Update Feedback</Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -89,40 +99,68 @@ const EditFeedback = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5'
+    backgroundColor: '#f8f9fa',
   },
-  label: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 50,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
+  },
+  backButton: {
     fontSize: 16,
+    color: '#3498db',
+    fontWeight: 'bold'
+  },
+  headerTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    marginTop: 15,
-    marginBottom: 5
+    color: '#333',
+  },
+  headerRight: {
+    width: 24,
+  },
+  content: {
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
   },
   input: {
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 10,
-    fontSize: 16
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 20,
   },
   commentsInput: {
-    height: 100,
-    textAlignVertical: 'top'
+    height: 120,
+    textAlignVertical: 'top',
   },
   updateButton: {
-    backgroundColor: '#2ecc71',
-    padding: 15,
-    borderRadius: 5,
-    marginTop: 20,
+    backgroundColor: '#3498db',
+    borderRadius: 10,
+    padding: 16,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+  },
+  updateButtonDisabled: {
+    backgroundColor: '#cccccc',
   },
   buttonText: {
-    color: 'white',
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 16,
-    fontWeight: 'bold'
-  }
+  },
 });
 
 export default EditFeedback;
