@@ -21,7 +21,7 @@ const HomeScreen = ({ navigation, route }) => {
       </View>
 
       {/* Quick Actions */}
-      <View style={styles.quickActionsContainer}>
+      {/* <View style={styles.quickActionsContainer}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.quickActions}>
           <TouchableOpacity 
@@ -57,7 +57,7 @@ const HomeScreen = ({ navigation, route }) => {
             <Text style={styles.actionText}>View Feedback</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </View> */}
 
       {/* Menu Section */}
       <View style={styles.menuSection}>

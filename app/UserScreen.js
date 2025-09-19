@@ -24,8 +24,8 @@ export default function UserScreen() {
     const data = await getUser(userId);
     setUserData(data);
     if (data) {
-      setName(data.name || '');
-      setEmail(data.email || '');
+      setName(data.name  );
+      setEmail(data.email  );
     } else {
       alert('User not found!');
     }
@@ -73,4 +73,4 @@ export default function UserScreen() {
       )}
     </View>
   );
-}
+}userscreen.js
